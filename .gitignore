@@ -1,0 +1,16 @@
+# dependencias
+node_modules/
+
+# entorno
+.env
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# sistema
+.DS_Store
+
+# playlists generadas (opcional)
+playlists/*.tsv

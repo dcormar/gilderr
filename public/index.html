@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gilderr (30s)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div id="app-logo" class="app-logo">
+        <img src="/img/gilderr-logo.png" alt="Gilderr logo" />
+      </div>
+      <h1>Gilderr (30s)</h1>
+
+      <div id="status" class="status hidden">
+        Comprobando conexión con Spotify…
+      </div>
+
+      <!-- Selector de playlist -->
+      <div id="playlist-selector" class="card accordion hidden">
+        <div id="playlist-header" class="accordion-header">
+          <strong>Selecciona una playlist</strong>
+          <span id="playlist-toggle">▾</span>
+        </div>
+
+        <div id="playlist-body" class="accordion-body">
+          <div class="playlist-select-wrapper">
+            <span class="playlist-icon">🗂️</span>
+            <select id="playlist-picker" class="playlist-select"></select>
+          </div>
+
+          <button id="btn-load-playlist" class="btn-secondary">
+            📂 Cargar playlist
+          </button>
+          <button id="btn-upload-playlist" class="btn-secondary">
+            ⬆️ Subir playlist
+          </button>
+
+          <!-- input oculto -->
+          <input
+            type="file"
+            id="playlist-file"
+            accept=".tsv"
+            style="display: none;"
+          />
+        </div>
+      </div>
+      
+      <!-- Pantalla login -->
+      <div id="not-logged" class="card hidden">
+        <p>
+          Necesitas iniciar sesión con tu cuenta <strong>Spotify Premium</strong>.
+        </p>
+        <a class="btn" href="/login">Conectar con Spotify</a>
+      </div>
+
+      <!-- UI principal -->
+      <div id="player-ui" class="card hidden">
+        <p><strong>Reproductor:</strong></p>
+        <p>
+          🟢 Conectado a Spotify <br />
+          <span id="device-status">🟡 Player: esperando…</span>
+        </p>
+
+        <div id="playlist-meta" class="song-info hidden">
+          <p><strong>Total canciones:</strong> <span id="info-total"></span></p>
+          <p><strong>Canción actual:</strong> <span id="info-index"></span></p>
+          <p><strong>URI actual:</strong> <span id="info-uri-top" class="truncate-uri"></span></p>
+        </div>
+
+        <div class="nav-buttons">
+          <button id="btn-prev" class="btn-secondary">⬅️ Atrás</button>
+          <button id="btn-next" class="btn-secondary">➡️ Siguiente</button>
+        </div>
+
+        <div class="buttons">
+          <button id="btn-play" class="btn">▶️ Reproducir preview (30s)</button>
+          <button id="btn-stop" class="btn-secondary">⏹️ Parar</button>
+          <button id="btn-reveal" class="btn-secondary">👁️ Revelar</button>
+        </div>
+
+        <div id="song-info" class="song-info hidden">
+          <p><strong>Título:</strong> <span id="info-title"></span></p>
+          <p><strong>Artista:</strong> <span id="info-artist"></span></p>
+          <p><strong>Año:</strong> <span id="info-year"></span></p>
+        </div>
+      </div>
+    </div>
+    <div id="toast-container"></div>
+    <div id="progress-modal" class="modal hidden">
+  <div class="modal-content">
+      <h3 id="progress-title">Procesando…</h3>
+      <div class="progress-bar">
+        <div id="progress-value"></div>
+      </div>
+      <p id="progress-text"></p>
+    </div>
+  </div>
+    <!-- SDK de Spotify -->
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script src="/app.js?v=20"></script>
+
+  </body>
+</html>
