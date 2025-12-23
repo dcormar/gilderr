@@ -32,8 +32,92 @@ const infoYear = document.getElementById("info-year");
 const deviceStatusEl = document.getElementById("device-status");
 const btnUpload = document.getElementById("btn-upload-playlist");
 const fileInput = document.getElementById("playlist-file");
+const btnCreatePlaylist = document.getElementById("btn-create-playlist");
+const createOverlay = document.getElementById("create-playlist-overlay");
+const btnGeneratePlaylist = document.getElementById("btn-generate-playlist");
+const btnCancelCreate = document.getElementById("btn-cancel-create");
+const playlistInstructionsInput = document.getElementById("playlist-instructions");
 
 btnUpload.onclick = () => fileInput.click();
+
+// Mostrar overlay de creación
+btnCreatePlaylist.onclick = () => {
+  createOverlay.classList.remove("hidden");
+  playlistInstructionsInput.focus();
+};
+
+// Ocultar overlay
+btnCancelCreate.onclick = () => {
+  createOverlay.classList.add("hidden");
+  playlistInstructionsInput.value = "";
+};
+
+// Cerrar overlay al hacer clic fuera
+createOverlay.onclick = (e) => {
+  if (e.target === createOverlay) {
+    createOverlay.classList.add("hidden");
+    playlistInstructionsInput.value = "";
+  }
+};
+
+// Generar playlist
+btnGeneratePlaylist.onclick = async () => {
+  const instructions = playlistInstructionsInput.value.trim();
+  if (!instructions) {
+    showToast("Por favor, escribe las instrucciones para la playlist", "error");
+    return;
+  }
+
+  createOverlay.classList.add("hidden");
+  showProgressModal(true);
+  updateProgressModal("Generando playlist con IA...", 0, 100);
+
+  try {
+    const res = await fetch("/api/generate-playlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ instructions }),
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error || "Error generando playlist");
+    }
+
+    const data = await res.json();
+    updateProgressModal("Buscando canciones en Spotify...", 0, 100);
+    
+    // Parsear la playlist generada
+    let lines = parseTsv(data.playlist);
+    
+    // Completar URLs de Spotify
+    lines = await fillMissingSpotifyUrls(lines, accessToken, (done, total) => {
+      updateProgressModal(`Buscando ${done}/${total}…`, done, total);
+    });
+    
+    // Construir TSV final
+    const finalTsv = buildTsv(lines);
+    
+    // Guardar la playlist en el servidor
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    const filename = `playlist_generada_${timestamp}.tsv`;
+    await uploadFinalPlaylist(finalTsv, filename);
+    
+    // Cargar la playlist en el reproductor
+    await loadPlaylistString(finalTsv);
+    
+    await loadAvailablePlaylists();
+    showToast("✅ Playlist generada y cargada correctamente");
+  } catch (err) {
+    console.error("Error generando playlist:", err);
+    showToast("Error generando playlist: " + err.message, "error");
+  } finally {
+    showProgressModal(false);
+    playlistInstructionsInput.value = "";
+  }
+};
 
 fileInput.onchange = async (e) => {
   const file = e.target.files[0];
@@ -553,9 +637,7 @@ async function playPreview30s() {
     startMs = Math.floor(Math.random() * maxStart);
   } catch {}
 
-  statusEl.textContent = `Reproduciendo ${song.title} (desde ${Math.round(
-    startMs / 1000
-  )}s)…`;
+  statusEl.textContent = `Reproduciendo canción ${currentIndex + 1}/${playlist.length}`;
 
   await fetch(
     `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,

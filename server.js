@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 const path = require('path');
 const querystring = require('querystring');
 const multer = require("multer");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
@@ -13,9 +14,17 @@ const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
 const PORT = process.env.PORT || 3000;
+const G_K = process.env.G_K;
+
+// Inicializar modelo
+let genAI = null;
+if (G_K) {
+  genAI = new GoogleGenerativeAI(G_K);
+}
 
 // Middleware estático
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 const PLAYLIST_DIR = path.join(__dirname, 'playlists');
 // Sesiones para guardar tokens por usuario
 app.use(
@@ -72,7 +81,8 @@ function validateTsvContent(content) {
       return `Línea ${i + 1}: el año debe ser un número de 4 dígitos.`;
     }
 
-    if (!url.includes("spotify.com/track/")) {
+    // La URL puede estar vacía (se completará después) o ser válida
+    if (url && !url.includes("spotify.com/track/")) {
       return `Línea ${i + 1}: URL Spotify inválida.`;
     }
   }
@@ -293,7 +303,94 @@ app.post("/api/upload-playlist", upload.single("playlist"), (req, res) => {
     res.status(500).send("Error interno del servidor.");
   }
 });
-// 7) Cualquier otra ruta sirve index.html (para SPA simple)
+
+// 7) Endpoint para generar playlist
+app.post("/api/generate-playlist", async (req, res) => {
+  try {
+    if (!genAI) {
+      return res.status(500).send("API no configurada. Configura G_K en .env");
+    }
+
+    if (!G_K || G_K.trim() === '') {
+      return res.status(500).send("API key de Google no configurada. Configura G_K en .env");
+    }
+
+    const { instructions } = req.body;
+    if (!instructions || !instructions.trim()) {
+      return res.status(400).send("Se requieren instrucciones para generar la playlist");
+    }
+
+    console.log("Generando playlist con modelo gemini-2.0-flash-exp...");
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+    const prompt = `Genera una playlist de música en formato TSV (valores separados por tabulador) basándote en las siguientes instrucciones del usuario:
+
+${instructions}
+
+REQUISITOS:
+- Máximo 100 canciones
+- Asegúrate de que el artista, la canción y el año sean correctos y coherentes (es decir, que la canción sea de ese artista y ese año y no sea una canción de otro artista o de otro año o los datos estén mezclados con los de otra canción o sean inventados)
+- Formato: 4 columnas separadas por tabulador (sin header)
+- Columnas: "nombre del artista" | "canción" | "año" | "spotify url" (esta última columna debe estar vacía)
+- Cada canción en una línea nueva
+- El año debe ser un número de 4 dígitos (ej: 1995, 2020)
+- No incluyas encabezados ni texto adicional, solo las filas de datos
+- Asegúrate de que las canciones sean reales y muy populares (que los conozca buena parte de la población)
+- Como mucho incluye 3 canciones de un mismo artista
+- No incluyas canciones que ya estén en la playlist
+- Procura que las canciones estén bien distribuidas en el tiempo que indica el usuario en las instrucciones. Si el usuario no indica un tiempo, incluye canciones de 1925 a 2025
+
+Ejemplo de formato (sin incluir este ejemplo en la respuesta):
+The Beatles	Hey Jude	1968	
+Radiohead	Creep	1993	
+Nirvana	Smells Like Teen Spirit	1991	
+
+Genera la playlist ahora:`;
+
+    console.log("Enviando petición a Google Generative AI...");
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let playlistText = response.text();
+
+    // Limpiar el texto: eliminar markdown code blocks si existen
+    playlistText = playlistText.replace(/```[\w]*\n?/g, '').trim();
+    
+    // Asegurar que cada línea tenga 4 columnas (añadir tabulador vacío si falta la última columna)
+    const lines = playlistText.split('\n').map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+      const cols = trimmed.split('\t');
+      // Asegurar 4 columnas
+      while (cols.length < 4) {
+        cols.push('');
+      }
+      return cols.slice(0, 4).join('\t');
+    }).filter(line => line !== null);
+
+    const finalPlaylist = lines.join('\n');
+    console.log(`Playlist generada con ${lines.length} canciones`);
+
+    res.json({ playlist: finalPlaylist });
+  } catch (err) {
+    console.error("Error generando playlist:", err);
+    console.error("Stack trace:", err.stack);
+    
+    // Proporcionar mensajes de error más específicos
+    let errorMessage = "Error generando playlist: " + err.message;
+    
+    if (err.message.includes("fetch failed") || err.message.includes("ECONNREFUSED") || err.message.includes("ENOTFOUND")) {
+      errorMessage = "Error de conectividad. Verifica tu conexión a internet y que la API de Google esté accesible.";
+    } else if (err.message.includes("API key") || err.message.includes("401") || err.message.includes("403")) {
+      errorMessage = "Error de autenticación. Verifica que la API key (G_K) en .env sea válida.";
+    } else if (err.message.includes("model") || err.message.includes("404")) {
+      errorMessage = "Modelo no encontrado. Verifica que el modelo esté disponible.";
+    }
+    
+    res.status(500).send(errorMessage);
+  }
+});
+
+// 8) Cualquier otra ruta sirve index.html (para SPA simple)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

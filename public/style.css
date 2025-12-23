@@ -319,3 +319,67 @@ code {
   font-family: monospace;
   opacity: 0.85;
 }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-content {
+  background: #1e1f29;
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.overlay-content h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #e5e7eb;
+}
+
+.overlay-hint {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.playlist-instructions-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  margin-bottom: 20px;
+}
+
+.playlist-instructions-input::placeholder {
+  color: #6b7280;
+}
+
+.playlist-instructions-input:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+
+.overlay-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}

@@ -36,6 +36,9 @@
           <button id="btn-upload-playlist" class="btn-secondary">
             ⬆️ Subir playlist
           </button>
+          <button id="btn-create-playlist" class="btn-secondary">
+            🪄 Crear
+          </button>
 
           <!-- input oculto -->
           <input
@@ -97,6 +100,22 @@
       <p id="progress-text"></p>
     </div>
   </div>
+    <div id="create-playlist-overlay" class="overlay hidden">
+      <div class="overlay-content">
+        <h3>Crear playlist con IA</h3>
+        <p class="overlay-hint">Describe el tipo de playlist que quieres crear (género, época, estado de ánimo, etc.)</p>
+        <textarea
+          id="playlist-instructions"
+          class="playlist-instructions-input"
+          placeholder="Ejemplo: Canciones de rock alternativo de los años 90, o música relajante para estudiar..."
+          rows="6"
+        ></textarea>
+        <div class="overlay-buttons">
+          <button id="btn-generate-playlist" class="btn">✨ Generar</button>
+          <button id="btn-cancel-create" class="btn-secondary">Cancelar</button>
+        </div>
+      </div>
+    </div>
     <!-- SDK de Spotify -->
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <script src="/app.js?v=20"></script>
